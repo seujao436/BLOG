@@ -8,7 +8,7 @@ const {
     deletePost,
     likePost
 } = require('../controllers/postController');
-const { auth, adminAuth } = require('../middleware/auth');
+const { auth, adminAuth, softAuth } = require('../middleware/auth');
 
 const router = express.Router();
 
@@ -19,7 +19,7 @@ const postValidation = [
 ];
 
 // Rotas públicas
-router.get('/', getPosts);
+router.get('/', softAuth, getPosts);
 router.get('/:id', getPost);
 
 // Rotas protegidas

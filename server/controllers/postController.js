@@ -8,13 +8,16 @@ exports.getPosts = async (req, res) => {
         const limit = parseInt(req.query.limit) || 10;
         const skip = (page - 1) * limit;
 
-        const posts = await Post.find({ published: true })
+        // Se o usuário for admin, mostra todos os posts, senão, apenas os publicados
+        const query = (req.user?.role === 'admin') ? {} : { published: true };
+
+        const posts = await Post.find(query)
             .populate('author', 'name email')
             .sort({ createdAt: -1 })
             .skip(skip)
             .limit(limit);
 
-        const total = await Post.countDocuments({ published: true });
+        const total = await Post.countDocuments(query);
 
         res.json({
             success: true,
@@ -63,14 +66,15 @@ exports.createPost = async (req, res) => {
             return res.status(400).json({ errors: errors.array() });
         }
 
-        const { title, content, tags, featuredImage } = req.body;
+        const { title, content, tags, featuredImage, published } = req.body;
 
         const post = await Post.create({
             title,
             content,
             tags: tags || [],
             featuredImage: featuredImage || '',
-            author: req.user._id
+            author: req.user._id,
+            published: published || false
         });
 
         const populatedPost = await Post.findById(post._id)
