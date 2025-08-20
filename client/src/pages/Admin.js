@@ -44,6 +44,18 @@ const Admin = () => {
     setShowEditor(true);
   };
 
+  const handleTogglePublished = async (post) => {
+    const updatedStatus = !post.published;
+    if (window.confirm(`Tem certeza que deseja ${updatedStatus ? 'publicar' : 'despublicar'} este post?`)) {
+      try {
+        const response = await api.put(`/posts/${post._id}`, { published: updatedStatus });
+        setPosts(posts.map(p => p._id === post._id ? response.data.post : p));
+      } catch (error) {
+        alert('Erro ao atualizar status do post');
+      }
+    }
+  };
+
   const handlePostSaved = (savedPost) => {
     if (editingPost) {
       setPosts(posts.map(post => post._id === savedPost._id ? savedPost : post));
@@ -103,22 +115,29 @@ const Admin = () => {
                     <tr key={post._id} style={{ borderBottom: '1px solid #dee2e6' }}>
                       <td style={{ padding: '1rem' }}>
                         <strong>{post.title}</strong>
-                        {!post.published && <span style={{ color: '#dc3545', marginLeft: '0.5rem' }}>(Rascunho)</span>}
+                        {!post.published && <span className="badge badge-draft">Rascunho</span>}
                       </td>
                       <td style={{ padding: '1rem' }}>{new Date(post.createdAt).toLocaleDateString('pt-BR')}</td>
                       <td style={{ padding: '1rem' }}>{post.views}</td>
                       <td style={{ padding: '1rem' }}>{post.likes}</td>
                       <td style={{ padding: '1rem', textAlign: 'center' }}>
+                        <button
+                          onClick={() => handleTogglePublished(post)}
+                          className={`btn btn-sm ${post.published ? 'btn-secondary' : 'btn-success'}`}
+                          style={{ marginRight: '0.5rem', fontSize: '0.8rem' }}
+                        >
+                          {post.published ? 'Despublicar' : 'Publicar'}
+                        </button>
                         <button 
                           onClick={() => handleEdit(post)}
-                          className="btn btn-outline"
+                          className="btn btn-sm btn-outline"
                           style={{ marginRight: '0.5rem', fontSize: '0.8rem' }}
                         >
                           Editar
                         </button>
                         <button 
                           onClick={() => handleDelete(post._id)}
-                          className="btn btn-danger"
+                          className="btn btn-sm btn-danger"
                           style={{ fontSize: '0.8rem' }}
                         >
                           Deletar
@@ -154,15 +173,15 @@ const PostEditor = ({ post, onSave, onCancel }) => {
     });
   };
 
-  const handleSubmit = async (e) => {
-    e.preventDefault();
+  const handleSave = async (published) => {
     setLoading(true);
     setError('');
 
     try {
       const postData = {
         ...formData,
-        tags: formData.tags.split(',').map(tag => tag.trim()).filter(tag => tag)
+        tags: formData.tags.split(',').map(tag => tag.trim()).filter(tag => tag),
+        published
       };
 
       let response;
@@ -195,7 +214,7 @@ const PostEditor = ({ post, onSave, onCancel }) => {
             <div className="alert alert-danger">{error}</div>
           )}
 
-          <form onSubmit={handleSubmit}>
+          <form onSubmit={(e) => e.preventDefault()}>
             <div className="form-group">
               <input
                 type="text"
@@ -248,21 +267,34 @@ const PostEditor = ({ post, onSave, onCancel }) => {
               />
             </div>
 
-            <div style={{ display: 'flex', gap: '1rem' }}>
-              <button 
-                type="submit" 
-                className="btn btn-primary"
-                disabled={loading}
-              >
-                {loading ? 'Salvando...' : post ? 'Atualizar Post' : 'Publicar Post'}
-              </button>
-              <button 
-                type="button" 
-                onClick={onCancel} 
-                className="btn btn-outline"
-              >
-                Cancelar
-              </button>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginTop: '2rem' }}>
+              <div>
+                <button
+                  type="button"
+                  onClick={onCancel}
+                  className="btn btn-outline"
+                >
+                  Cancelar
+                </button>
+              </div>
+              <div style={{ display: 'flex', gap: '1rem' }}>
+                <button
+                  type="button"
+                  onClick={() => handleSave(false)}
+                  className="btn btn-secondary"
+                  disabled={loading}
+                >
+                  {loading ? 'Salvando...' : 'Salvar Rascunho'}
+                </button>
+                <button
+                  type="button"
+                  onClick={() => handleSave(true)}
+                  className="btn btn-primary"
+                  disabled={loading}
+                >
+                  {loading ? 'Publicando...' : (post?.published ? 'Atualizar Post' : 'Publicar')}
+                </button>
+              </div>
             </div>
           </form>
         </div>
